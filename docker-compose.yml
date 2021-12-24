@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  traefik:
+    image: traefik
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: ./traefik.yml
+        target: /etc/traefik/traefik.yml
+        read_only: true
+      - type: bind
+        source: ./data/letsencrypt
+        target: /letsencrypt
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: ~/.docker/config.json
+        target: /config.json
+        read_only: true
+    environment:
+      HOME: /
+      WATCTOWER_LABEL_ENABLE: 'true'
+      WATCHTOWER_CLEANUP: 'true'
+
+  {{your-service-name-here}}:
+    image: {{your-image-name-here}}
+    restart: unless-stopped
+    expose:
+      - {{your-port-here}}
+    labels:
+      com.centurylinklabs.watchtower.enable: true
+      traefik.enable: true
+      traefik.http.routers.server.rule: Host(`{{your-domain-name-here}}`)
+      traefik.http.routers.server.tls.certResolver: letsencrypt
+      traefik.http.routers.server.tls.domains[0].main: {{your-domain-name-here}}
